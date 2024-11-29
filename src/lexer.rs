@@ -7,7 +7,7 @@ pub(crate) struct Lexer<'a> {
     input: Box<'a, Chars<'a>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum Token {
     Char(char),
     Empty,

@@ -1,4 +1,5 @@
 use std::{
+    cmp::{Eq, PartialEq},
     fmt::{self, Debug},
     hash::{self, Hash},
     marker::PhantomData,
@@ -8,10 +9,19 @@ use std::{
 
 use crate::allocator::Allocator;
 
-pub(crate) struct Box<'a, T: ?Sized>(NonNull<T>, PhantomData<(&'a (), T)>);
+pub(crate) struct Box<'alloc, T: ?Sized>(NonNull<T>, PhantomData<(&'alloc (), T)>);
 
-impl<'a, T> Box<'a, T> {
-    pub(crate) fn new_in(value: T, allocator: &'a Allocator) -> Self {
+impl<'alloc, T: PartialEq> PartialEq for Box<'alloc, T> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        PartialEq::eq(&**self, &**other)
+    }
+}
+
+impl<'alloc, T: Eq> Eq for Box<'alloc, T> {}
+
+impl<'alloc, T> Box<'alloc, T> {
+    pub(crate) fn new_in(value: T, allocator: &'alloc Allocator) -> Self {
         Self(NonNull::from(allocator.alloc(value)), PhantomData)
     }
 
@@ -19,13 +29,12 @@ impl<'a, T> Box<'a, T> {
         unsafe { ptr::read(self.0.as_ptr()) }
     }
 
-    #[allow(unsafe_code)]
     pub(crate) const unsafe fn dangling() -> Self {
         Self(NonNull::dangling(), PhantomData)
     }
 }
 
-impl<'a, T: ?Sized> Box<'a, T> {
+impl<'alloc, T: ?Sized> Box<'alloc, T> {
     #[inline]
     pub(crate) const unsafe fn from_non_null(ptr: NonNull<T>) -> Self {
         Self(ptr, PhantomData)
@@ -37,7 +46,7 @@ impl<'a, T: ?Sized> Box<'a, T> {
     }
 }
 
-impl<'a, T: ?Sized> ops::Deref for Box<'a, T> {
+impl<'alloc, T: ?Sized> ops::Deref for Box<'alloc, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -45,31 +54,31 @@ impl<'a, T: ?Sized> ops::Deref for Box<'a, T> {
     }
 }
 
-impl<'a, T: ?Sized> ops::DerefMut for Box<'a, T> {
+impl<'alloc, T: ?Sized> ops::DerefMut for Box<'alloc, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.0.as_mut() }
     }
 }
 
-impl<'a, T: ?Sized> AsRef<T> for Box<'a, T> {
+impl<'alloc, T: ?Sized> AsRef<T> for Box<'alloc, T> {
     fn as_ref(&self) -> &T {
         self
     }
 }
 
-impl<'a, T: ?Sized> AsMut<T> for Box<'a, T> {
+impl<'alloc, T: ?Sized> AsMut<T> for Box<'alloc, T> {
     fn as_mut(&mut self) -> &mut T {
         self
     }
 }
 
-impl<'a, T: ?Sized + Debug> Debug for Box<'a, T> {
+impl<'alloc, T: ?Sized + Debug> Debug for Box<'alloc, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.deref().fmt(f)
     }
 }
 
-impl<'a, T: Hash> Hash for Box<'a, T> {
+impl<'alloc, T: Hash> Hash for Box<'alloc, T> {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
         self.deref().hash(state);
     }
@@ -79,7 +88,7 @@ impl<'a, T: Hash> Hash for Box<'a, T> {
 mod test {
     use std::hash::{DefaultHasher, Hash, Hasher};
 
-    use super::Box;
+    use super::*;
     use crate::allocator::Allocator;
 
     #[test]

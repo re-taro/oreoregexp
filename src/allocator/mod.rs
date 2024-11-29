@@ -3,8 +3,10 @@ use std::ops::{Deref, DerefMut};
 use bumpalo::Bump;
 
 pub(crate) mod boxed;
+pub(crate) mod clone_in;
+pub(crate) mod vec;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub(crate) struct Allocator {
     bump: Bump,
 }

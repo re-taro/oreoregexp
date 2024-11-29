@@ -4,4 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bumpalo = "3.16.0"
+allocator-api2 = "0.2.20"
+bumpalo = { version = "3.16.0", features = ["allocator-api2"] }
+thiserror = "2.0.3"
